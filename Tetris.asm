@@ -318,6 +318,43 @@ block_move_right:
 # Lastly, pop and restore values in $ra, $s0, $s1, $s2, $s3  and return
 # Hint: you can refer to block_move_left to get some clues and pause "p" is very useful to debug.
 # *****Your codes start here
+	addi $sp, $sp, -20
+	sw $ra, 0($sp)
+	sw $s0, 4($sp)
+	sw $s1, 8($sp)
+	sw $s2, 12($sp)
+	sw $s3, 16($sp)
+
+	lw $t0,0($s1) #load the x_loc of the current block
+	addi $a0,$t0, 1 #assume block moving right is valid
+	
+	lw $a1,0($s2) #load the y_loc of the current block
+	lw $a2,0($s3) #load the mode of the current block
+	lw $a3,0($s0) #load the id of the current block
+	
+	jal check_movement_valid
+	
+	beq $v0,$zero,bmr_exit
+	
+bmr_after_move:
+	sw $a0,0($s1) #update the x_loc of the current block
+	
+	lw $a0,0($s1) #load the x_loc of the current block
+	lw $a1,0($s2) #load the y_loc of the current block
+	lw $a2,0($s3) #load the mode of the current block
+	li $v0,104
+	syscall
+	
+bmr_exit:
+	li $v0,101 #refresh the screen
+	syscall
+			
+	lw $ra, 0($sp)
+	lw $s0, 4($sp)
+	lw $s1, 8($sp)
+	lw $s2, 12($sp)
+	lw $s3, 16($sp)
+	addi $sp, $sp, 20
 	jr $ra		
 		
 		
@@ -353,6 +390,48 @@ block_rotate:
 # Lastly, pop and restore values in $ra, $s0, $s1, $s2, $s3  and return
 # Hint: you can refer to block_move_left to get some clues and pause "p" is very useful to debug.
 # *****Your codes start here
+	addi $sp, $sp, -20
+	sw $ra, 0($sp)
+	sw $s0, 4($sp)
+	sw $s1, 8($sp)
+	sw $s2, 12($sp)
+	sw $s3, 16($sp)
+	
+	lw $t0,0($s3) #load the mode of the current block
+	addi $t0, $t0, 1 # increase the mode by 1
+	li $t1, 4
+	
+	div $t0, $t1	# HI is set to remainder of mode / 4 therefore, if new mode == 4, then it will be set to 0.
+	mfhi $t0	# $t0 now store the new mode, being (old mode + 1) % 4
+ 	
+	move $a2, $t0	#assume block rotating is valid
+	
+	lw $a0,0($s1) #load the x_loc of the current block
+	lw $a1,0($s2) #load the y_loc of the current block
+	lw $a3,0($s0) #load the id of the current block
+	
+	
+	jal check_movement_valid	# determine if valid
+	beq $v0,$zero,br_exit		# if not valid, jump to exit
+
+br_after_rotate:
+	# rotation is valid, need to update to mode to new value.
+	sw $a2,0($s3) #update the mode of the current block
+
+	lw $a0,0($s1) #load the x_loc of the current block
+	lw $a1,0($s2) #load the y_loc of the current block
+	lw $a2,0($s3) #load the mode of the current block
+	li $v0,104
+	syscall
+
+
+br_exit:
+	lw $ra, 0($sp)
+	lw $s0, 4($sp)
+	lw $s1, 8($sp)
+	lw $s2, 12($sp)
+	lw $s3, 16($sp)
+	addi $sp, $sp, 20
 	jr $ra		
 		
 		
@@ -485,8 +564,110 @@ check_movement_valid:
 # All situations includes crossing horizontal_boundary, crossing vertical_boundary and overlapping with fixed squares.
 # At last, set the value of $v0 based on the check result ,and pop and restore values in $ra, $s4  and return.
 #*****Your codes start here
-
+	addi $sp, $sp, -32
+	sw $ra, 0($sp)
+	sw $s4, 4($sp)
+	sw $s0, 8($sp)
+	sw $s1, 12($sp)
+	sw $s2, 16($sp)
+	sw $s3, 20($sp)	
+	sw $s5, 24($sp)
+	sw $s6, 28($sp)	
+		
 	li $v0, 1
+	
+	# need to access array based off, (type == row), (mode == columns)
+	# e.g mode 0: start index = 0; type 0: row = 0;
+	# e.g mode 1: start index = 4; type 1: row = 1;
+	
+	# formula for getting corresponding mode_x_loc
+	# (id)*16 + (mode)*4 + (block number)
+	# $a3 * 16 + $a2 * 4 + block number
+	
+	# EXAMPLE:
+	# for a type J block of mode 3
+	# block 1 == (16 * 1) + (3 * 4) + 1 == 29
+
+	# following the formula 
+	# (id)*16 + (mode)*4 + (block number)
+	
+	la $s5, mode_x_loc	# s0 = address of mode_x_loc (which is a 1d byte array)
+	la $s6, mode_y_loc	# s1 = address of mode_y_loc (which is a 1d byte array)
+				# Input parameter: $a0: potential x_loc 
+				#		   $a1: potential y_loc
+				#		   $a2: potential block_mode
+				#		   $a3: current block id
+	sll $t5, $a3, 4		# t5 = id * 16	
+	sll $t6, $a2, 2		# t6 = mode * 4
+
+	# for block 1's x coordinate
+	add $v1, $zero, $t5	# v1 += t5
+	add $v1, $v1, $t6	# v1 += t6
+	# now v1 = (id)*16 + (mode)*4 
+	
+	li $t0, 1	# iterator i = 1
+	li $t1, 5	# i < 5, therefore loop 4 times.
+	
+cmv_loop1:
+	beq $t0, $t1, exit_loop1
+	
+	addi $t2, $v1, $t0	# t2 = i + (id)*16 + (mode)*4 
+	add $t2, $t2, $s5 	# t2 = address of corresponding x-offset
+	lb $t2, 0($t2)		# t2 = value of x-offset
+	add $t2, $t2, $a0	# t2 = x + x-offset
+	
+	addi $s2, $v1, $t0	# s2 = i + (id)*16 + (mode)*4 
+	add $s2, $s2, $s6	# s2 = address of corresponding y-offset
+	lb $s2, 0($s2)		# s2 = value of y-offset
+	add $s2, $s2, $a1	# s2 = y + y-offset
+	
+	# t2 = potential x coordinate of block i
+	# s2 = potential y coordinate of block i
+	
+	li $t3, 9	# horizonal boundary
+	li $s3, 21	# vertical boundary
+	
+	bltz $t2, cmv_invalid		# if x < 0	INVALID
+	bgt  $t2, $t3, cmv_invalid	# if x > 9	INVALID
+	
+	bltz $s2, cmv_invalid		# if y < 0	INVALID
+	bgt $s2, $s3, cmv_invalid	# if y > 21	INVALID
+	
+	# corresponding coordinate on basic_matrix bitmap ==
+	# by formula
+	# (y * 9) + (x+1)
+	
+	
+	
+	addi $t0, 1		# i++
+	j cmv_loop1
+
+
+exit_loop1:
+	
+	
+cmv_invalid:
+	li $v0, 0
+	j cmv_exit
+	
+
+cmv_valid:
+	li $v0, 1
+	j cmv_exit
+ 
+  
+cmv_exit: 
+	
+	
+	sw $ra, 0($sp)
+	sw $s4, 4($sp)
+	sw $s0, 8($sp)
+	sw $s1, 12($sp)
+	sw $s2, 16($sp)
+	sw $s3, 20($sp)	
+	sw $s5, 24($sp)
+	sw $s6, 28($sp)	
+	addi $sp, $sp, 32
         jr $ra
 		
 		
