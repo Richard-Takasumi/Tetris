@@ -573,7 +573,6 @@ check_movement_valid:
 	sw $s3, 20($sp)	
 	sw $s5, 24($sp)
 	sw $s6, 28($sp)	
-		
 	li $v0, 1
 	
 	# need to access array based off, (type == row), (mode == columns)
@@ -600,7 +599,7 @@ check_movement_valid:
 	sll $t5, $a3, 4		# t5 = id * 16	
 	sll $t6, $a2, 2		# t6 = mode * 4
 
-	# for block 1's x coordinate
+
 	add $v1, $zero, $t5	# v1 += t5
 	add $v1, $v1, $t6	# v1 += t6
 	# now v1 = (id)*16 + (mode)*4 
@@ -609,14 +608,15 @@ check_movement_valid:
 	li $t1, 5	# i < 5, therefore loop 4 times.
 	
 cmv_loop1:
-	beq $t0, $t1, exit_loop1
+	beq $t0, $t1, cmv_valid	# if successfully exit for loop, all blocks are valid.
 	
-	addi $t2, $v1, $t0	# t2 = i + (id)*16 + (mode)*4 
+	add $t2, $v1, $t0	# t2 = i + (id)*16 + (mode)*4 
 	add $t2, $t2, $s5 	# t2 = address of corresponding x-offset
 	lb $t2, 0($t2)		# t2 = value of x-offset
 	add $t2, $t2, $a0	# t2 = x + x-offset
+
 	
-	addi $s2, $v1, $t0	# s2 = i + (id)*16 + (mode)*4 
+	add $s2, $v1, $t0	# s2 = i + (id)*16 + (mode)*4 
 	add $s2, $s2, $s6	# s2 = address of corresponding y-offset
 	lb $s2, 0($s2)		# s2 = value of y-offset
 	add $s2, $s2, $a1	# s2 = y + y-offset
@@ -635,17 +635,18 @@ cmv_loop1:
 	
 	# corresponding coordinate on basic_matrix bitmap ==
 	# by formula
-	# (y * 9) + (x+1)
+	# (y * 10) + (x) 
+	mul $t3, $s2, 10	# t3 = y * 10
+	add $t3, $t3, $t2	# t3 += x
+	add $t3, $s4, $t3	# t3 = address of basic_matrix bitmap + offset (which was t3)
 	
+	lb $t3, 0($t3)		# t3 = basic_matrix[(y*10)+x]
 	
+	bnez $t3, cmv_invalid
 	
-	addi $t0, 1		# i++
+	addi $t0, $t0, 1		# i++
 	j cmv_loop1
 
-
-exit_loop1:
-	
-	
 cmv_invalid:
 	li $v0, 0
 	j cmv_exit
@@ -653,20 +654,17 @@ cmv_invalid:
 
 cmv_valid:
 	li $v0, 1
-	j cmv_exit
- 
-  
+	
 cmv_exit: 
-	
-	
-	sw $ra, 0($sp)
-	sw $s4, 4($sp)
-	sw $s0, 8($sp)
-	sw $s1, 12($sp)
-	sw $s2, 16($sp)
-	sw $s3, 20($sp)	
-	sw $s5, 24($sp)
-	sw $s6, 28($sp)	
+
+	lw $ra, 0($sp)
+	lw $s4, 4($sp)
+	lw $s0, 8($sp)
+	lw $s1, 12($sp)
+	lw $s2, 16($sp)
+	lw $s3, 20($sp)	
+	lw $s5, 24($sp)
+	lw $s6, 28($sp)	
 	addi $sp, $sp, 32
         jr $ra
 		
@@ -699,14 +697,90 @@ update_basic_matrix:
 # Thirdly, increment the corresponding coordinate in basic_matrix_bitmap by 1.
 # At last, pop and restore values in $ra, $s4  and return.
 #*****Your codes start here
-        jr $ra
+	addi $sp, $sp, -32
+	sw $ra, 0($sp)
+	sw $s0, 4($sp)
+	sw $s1, 8($sp)
+	sw $s2, 12($sp)
+	sw $s3, 16($sp)
+	sw $s4, 20($sp)
+	sw $s5, 24($sp)
+	sw $s6, 28($sp)
+# Input parameter: $a0: x_loc of block to be fixed 
+#		   $a1: y_loc of block to be fixed  
+#		   $a2: mode of block to be fixed 
+#		   $a3: id of block to be fixed
+
+	la $s5, mode_x_loc	# s5 = address of mode_x_loc (which is a 1d byte array)
+	la $s6, mode_y_loc	# s6 = address of mode_y_loc (which is a 1d byte array)
+				# Input parameter: $a0: potential x_loc 
+				#		   $a1: potential y_loc
+				#		   $a2: potential block_mode
+				#		   $a3: current block id
+	sll $t5, $a3, 4		# t5 = id * 16	
+	sll $t6, $a2, 2		# t6 = mode * 4
+
+	# for block 1's x coordinate
+	add $v1, $zero, $t5	# v1 += t5
+	add $v1, $v1, $t6	# v1 += t6
+	# now v1 = (id)*16 + (mode)*4 
+	
+	li $t0, 1	# iterator i = 1
+	li $t1, 5	# i < 5, therefore loop 4 times.
+
+ubm_loop1:
+	beq $t0, $t1, ubm_exit_loop1	
+	
+	add $t2, $v1, $t0	# t2 = i + (id)*16 + (mode)*4 
+	add $t2, $t2, $s5 	# t2 = address of corresponding x-offset
+	lb $t2, 0($t2)		# t2 = value of x-offset
+	add $t2, $t2, $a0	# t2 = x + x-offset
+	
+	add $s2, $v1, $t0	# s2 = i + (id)*16 + (mode)*4 
+	add $s2, $s2, $s6	# s2 = address of corresponding y-offset
+	lb $s2, 0($s2)		# s2 = value of y-offset
+	add $s2, $s2, $a1	# s2 = y + y-offset
+	
+	# t2 = potential x coordinate of block i
+	# s2 = potential y coordinate of block i
+
+	# corresponding coordinate on basic_matrix bitmap ==
+	# by formula
+	# (y * 10) + (x)
+	mul $t3, $s2, 10	# t3 = y * 10
+	add $t3, $t3, $t2	# t3 += x
+	add $t3, $s4, $t3	# t3 = address of basic_matrix bitmap + offset (which was t3)
+	
+	lb $t4, 0($t3)		# t4 = basic_matrix[(y*10)+x]
+	addi $t4, $t3, 1	# t4 += 1
+	sb $t4, 0($t3)		# basic_matrix[(y*10)+x]++
+	
+	addi $t0, $t0, 1		# i++
+	j ubm_loop1
+
+
+ubm_exit_loop1:
+	li $v0,104
+	syscall	
+
+	li $v0,105
+	syscall	
 		
-		
-		
-		
-		
-		
-		
+	li $v0,101 #refresh the screen
+	syscall	
+
+
+
+	lw $ra, 0($sp)
+	lw $s0, 4($sp)
+	lw $s1, 8($sp)
+	lw $s2, 12($sp)
+	lw $s3, 16($sp)
+	lw $s4, 20($sp)
+	lw $s5, 24($sp)
+	lw $s6, 28($sp)
+	addi $sp, $sp, 32
+        jr $ra	
 		
 # *****Your codes end here
 
@@ -862,12 +936,16 @@ process_full_row:
 # Thirdly, let the first row of basic matrix equal to zero.
 # At last, use syscall 107 and 102, then pop and restore values in $ra, $s4  and return.
 #*****Your codes start here
-        jr $ra
+	addi $sp, $sp, -8
+	sw $ra, 0($sp)
+	sw $s4, 4($sp)
+	
 		
 		
-		
-		
-		
+	lw $ra, 0($sp)
+	lw $s4, 4($sp)
+	addi $sp, $sp, 8
+	jr $ra
 		
 		
 		
