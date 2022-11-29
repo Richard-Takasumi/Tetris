@@ -948,69 +948,75 @@ process_full_row:
 	sw $s6, 28($sp)
 
 
+	# delete row $a0
+	addi $sp, $sp, -4
+	sw $ra, 0($sp)
 	
-	
-	# loop through from row 0 to row (a0 - 1)
-	# for each byte in basic_matrix
-	# set the byte of 
-	# basic_matrix[index + 10] = basic_matrix[index]
-	
-	
-	
-	# set row 0 of basic_matrix all equal to 0
-	# this is: basic_matrix[0] to basic_matrix[9] is set = 0
-	
-	
-	# delete row $a0, (set it equal to 0)
-	li $t0, 0		# i = 0
-	li $t1, 9		# max_i = 9
-	move $s2, $a0		# $s2 = $a0 (which is the full row)
-	j pfr_delete_row_loop	# delete row $a
-	
-	
-	
-	j pfr_exit		# ensure that pfr_copy_row isn't accidentally called twice
+	jal pfr_delete_row_loop_init	# delete row $a0 which at the start is set to the correct row, so no need to worry
 
-# see this as a function which takes 1 parameter being $s1 (row number) and copies the row to row-1.
-# IMPORTANT: Whenever calling this "function: ensure that s1 = row number, $t0 = 0, $t1 = 9;
-pfr_copy_row:
-	beq $t0, $t1, pfr_copy_row_exit
-	
-	
-	
-
-	
-	
-	
-	addi $t0, $t0, 1 	# i++
-	
-pfr_copy_row_exit:
-
-
-
+	lw $ra, 0($sp)
+	addi $sp, $sp, 4
 		
-	j pfr_exit		# ensure that pfr_delete_row_loop isn't accidentally called twice
+	move $t5, $a0		# j = row 
+	addi $t5, $t5, -1	# j = row + 1			# say we're deleting row 10, then
+								# we need to move row 
+	
+	# move all the rows downwards
+	move $t8, $a0		# temporarily save a0 to t8
+
+
+pfr_copy_all_rows:
+	bltz $t5, pfr_copy_all_rows_exit	# if j < 0, exit loop
 	
 	
-# see this as a function which takes 1 parameter being $s2 (row number) and deletes said row.
-# IMPORTANT: Whenever calling this "function: ensure that s2 = row number, $t0 = 0, $t1 = 9;
-pfr_delete_row_loop:
-	beq $t0, $t1, pfr_delete_row_loop_exit	# if i == 9, exit
+	addi $sp, $sp, -4
+	sw $ra, 0($sp)
+	move $a0, $t5		# set a0 = t5, aka a0 = j
+				# aka copy row j to row j-1
 	
-	mul $t3, $s2, 10	# t3 = row * 10
-	add $t3, $t3, $t0	# t3 += i
-	add $t3, $t3, $s4 	# t3 = address of basic_matrix[row * 10 + i]
-	sb $zero, 0($t3)	# basic_matrix[row * 10 + i] = 0
+	jal pfr_copy_row_init	#copy row j to row j-1
 	
+	lw $ra, 0($sp)
+	addi $sp, $sp, 4
+
+	addi $t5, $t5, -1	# j--
 	
+	# should call pfr_copy_row for from row ($a2+1) to row 0
+	j pfr_copy_all_rows  
+
 	
-	addi $t0, $t0, 1	# i ++
-	j pfr_delete_row_loop
-	
-pfr_delete_row_loop_exit:
+pfr_copy_all_rows_exit:	
+	move $a0, $t8		# load our saved a0 back from t8
 
 pfr_exit:
 
+	# delete row 0, (set it equal to 0)
+
+	addi $sp, $sp, -8
+	sw $ra, 0($sp)
+	sw $a0, 4($sp)
+	
+	li $a0, 0	# input for delete_row_loop_init is $a0 = 0
+	jal pfr_delete_row_loop_init	# delete row 0
+	
+	lw $ra, 0($sp)
+	lw $a0, 4($sp)
+	addi $sp, $sp, 8
+
+	addi $sp, $sp, -8
+	sw $a0, 0($sp)
+	sw $a1, 4($sp)
+
+	li $a0, 2
+	li $a1, 0
+	li $v0,102
+	syscall		#play sound of clearing row.
+	
+	lw $a0, 0($sp)
+	lw $a1, 4($sp)
+	addi $sp, $sp, 8
+	
+	
 	lw $ra, 0($sp)
 	lw $s0, 4($sp)
 	lw $s1, 8($sp)
@@ -1021,8 +1027,74 @@ pfr_exit:
 	lw $s6, 28($sp)
 	addi $sp, $sp, 32
 	jr $ra
+
+
+# see this as a function which takes 1 parameter being $a0 (row number) and copies the row to row-1.
+# IMPORTANT: Whenever calling this "function: ensure that s1 = row number, $t0 = 0, $t1 = $a1;
+
+pfr_copy_row_init:
+	li $t0, 0
+				# $a1 = width
+				# $a0 = input row
+
+pfr_copy_row:
+	beq $t0, $a1, pfr_copy_row_exit
+	
+	mul $t3, $a0, 10	# t3 = row * 10
+	add $t3, $t3, $t0	# t3 += i
+				
+				# now t3 = row * 10 + i
+	
+	add $t4, $t3, $s4	# t4 = address of basic_matrix + offset (which was [10 * row + i] )
+	lb $t4, 0($t4)		# t4 = basic_matrix[10 * row + i]
+	
+	addi $t3, $t3, 10	# t3 += 10 (to change index to next row value)
+	add $t3, $t3, $s4	# t3 = address of basic_matrix[10 * row + i + 10] 
+	
+	sb $t4, 0($t3)		# basic_matrix[10 * row + i + 10] = basic_matrix[10 * row + i]
+	# store value of basic_matrix[i]
+	# set basic_matrix[i + 10] = stored value
+	
+	
+	addi $t0, $t0, 1 	# i++
+	j pfr_copy_row
+	
+pfr_copy_row_exit:
+	jr $ra		# should in theory jump back to pfr_copy_all_rows
 		
-		
+# see this as a function which takes 1 parameter being $a0 (row number) and deletes said row.
+# IMPORTANT: Whenever calling this "function: ensure that 
+
+	#	$a0 = row number, 
+	#	$t0 = 0, 
+
+pfr_delete_row_loop_init:
+	li $t0, 0	# i = 0
+
+		# a0 is the row we're deleting
+		# a1 is the width of the board, it should never change.
+
+	
+pfr_delete_row_loop:
+	beq $t0, $a1, pfr_delete_row_loop_exit	# if i == $a1 which is width), exit
+	
+	mul $t3, $a0, 10	# t3 = row * 10
+	add $t3, $t3, $t0	# t3 += i
+	add $t3, $t3, $s4 	# t3 = address of basic_matrix[row * 10 + i]
+	sb $zero, 0($t3)	# basic_matrix[row * 10 + i] = 0
+	
+	addi $t0, $t0, 1	# i ++
+	j pfr_delete_row_loop
+	
+	
+pfr_delete_row_loop_exit:
+	li $v0, 107	# delete row ($a0) in Java
+	syscall
+	
+	li $v0, 101 # Refresh the screen
+	syscall
+	jr $ra	
+
 		
 # *****Your codes end here
 
