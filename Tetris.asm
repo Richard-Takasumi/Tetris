@@ -937,7 +937,7 @@ process_full_row:
 # Thirdly, let the first row of basic matrix equal to zero.
 # At last, use syscall 107 and 102, then pop and restore values in $ra, $s4  and return.
 #*****Your codes start here
-	addi $sp, $sp, -32
+	addi $sp, $sp, -48
 	sw $ra, 0($sp)
 	sw $s0, 4($sp)
 	sw $s1, 8($sp)
@@ -946,6 +946,10 @@ process_full_row:
 	sw $s4, 20($sp)
 	sw $s5, 24($sp)
 	sw $s6, 28($sp)
+	sw $v0, 32($sp)
+	sw $v1, 36($sp)
+	sw $a0, 40($sp)
+	sw $a1, 44($sp)
 
 
 	# delete row $a0
@@ -958,13 +962,13 @@ process_full_row:
 	addi $sp, $sp, 4
 		
 	move $t5, $a0		# j = row 
-	addi $t5, $t5, -1	# j = row + 1			# say we're deleting row 10, then
-								# we need to move row 
+	addi $t5, $t5, -1	# j = row - 1			# say we're deleting row 10, then
+								# we need to move row 9 and up downwards.
 	
 	# move all the rows downwards
 	move $t8, $a0		# temporarily save a0 to t8
 
-
+	# (for int j = row - 1; j >= 0; j --)
 pfr_copy_all_rows:
 	bltz $t5, pfr_copy_all_rows_exit	# if j < 0, exit loop
 	
@@ -974,7 +978,7 @@ pfr_copy_all_rows:
 	move $a0, $t5		# set a0 = t5, aka a0 = j
 				# aka copy row j to row j-1
 	
-	jal pfr_copy_row_init	#copy row j to row j-1
+	jal pfr_copy_row_init	#copy row j to row j+1
 	
 	lw $ra, 0($sp)
 	addi $sp, $sp, 4
@@ -1003,18 +1007,22 @@ pfr_exit:
 	lw $a0, 4($sp)
 	addi $sp, $sp, 8
 
-	addi $sp, $sp, -8
+
+
+	addi $sp, $sp, -12
 	sw $a0, 0($sp)
 	sw $a1, 4($sp)
+	sw $v0, 8($sp)
 
 	li $a0, 2
 	li $a1, 0
-	li $v0,102
+	li $v0, 102
 	syscall		#play sound of clearing row.
 	
 	lw $a0, 0($sp)
 	lw $a1, 4($sp)
-	addi $sp, $sp, 8
+	lw $v0, 8($sp)
+	addi $sp, $sp, 12
 	
 	
 	lw $ra, 0($sp)
@@ -1025,17 +1033,21 @@ pfr_exit:
 	lw $s4, 20($sp)
 	lw $s5, 24($sp)
 	lw $s6, 28($sp)
-	addi $sp, $sp, 32
+	lw $v0, 32($sp)
+	lw $v1, 36($sp)
+	lw $a0, 40($sp)
+	lw $a1, 44($sp)
+	addi $sp, $sp, 48
 	jr $ra
 
 
-# see this as a function which takes 1 parameter being $a0 (row number) and copies the row to row-1.
-# IMPORTANT: Whenever calling this "function: ensure that s1 = row number, $t0 = 0, $t1 = $a1;
+# see this as a function which takes 1 parameter being $a0 (row number) and copies the row to row+1. e.g row 9 to row 10
+# IMPORTANT: Whenever calling this "function: ensure that $a0 = row number
 
 pfr_copy_row_init:
-	li $t0, 0
-				# $a1 = width
+	li $t0, 0		# $t0 is i iterator
 				# $a0 = input row
+				# $a1 = width
 
 pfr_copy_row:
 	beq $t0, $a1, pfr_copy_row_exit
@@ -1061,6 +1073,8 @@ pfr_copy_row:
 	
 pfr_copy_row_exit:
 	jr $ra		# should in theory jump back to pfr_copy_all_rows
+		
+		
 		
 # see this as a function which takes 1 parameter being $a0 (row number) and deletes said row.
 # IMPORTANT: Whenever calling this "function: ensure that 
