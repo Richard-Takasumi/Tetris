@@ -584,7 +584,7 @@ check_movement_valid:
 	# $a3 * 16 + $a2 * 4 + block number
 	
 	# EXAMPLE:
-	# for a type J block of mode 3
+	# for a type J block(id ==1) of mode 3
 	# block 1 == (16 * 1) + (3 * 4) + 1 == 29
 
 	# following the formula 
@@ -604,8 +604,8 @@ check_movement_valid:
 	add $v1, $v1, $t6	# v1 += t6
 	# now v1 = (id)*16 + (mode)*4 
 	
-	li $t0, 1	# iterator i = 1
-	li $t1, 5	# i < 5, therefore loop 4 times.
+	li $t0, 0	# iterator i = 1
+	li $t1, 4	# i < 5, therefore loop 4 times.
 	
 cmv_loop1:
 	beq $t0, $t1, cmv_valid	# if successfully exit for loop, all blocks are valid.
@@ -637,6 +637,7 @@ cmv_loop1:
 	# by formula
 	# (y * 10) + (x) 
 	mul $t3, $s2, 10	# t3 = y * 10
+	
 	add $t3, $t3, $t2	# t3 += x
 	add $t3, $s4, $t3	# t3 = address of basic_matrix bitmap + offset (which was t3)
 	
@@ -725,8 +726,8 @@ update_basic_matrix:
 	add $v1, $v1, $t6	# v1 += t6
 	# now v1 = (id)*16 + (mode)*4 
 	
-	li $t0, 1	# iterator i = 1
-	li $t1, 5	# i < 5, therefore loop 4 times.
+	li $t0, 0	# iterator i = 1
+	li $t1, 4	# i < 5, therefore loop 4 times.
 
 ubm_loop1:
 	beq $t0, $t1, ubm_exit_loop1	
@@ -936,15 +937,89 @@ process_full_row:
 # Thirdly, let the first row of basic matrix equal to zero.
 # At last, use syscall 107 and 102, then pop and restore values in $ra, $s4  and return.
 #*****Your codes start here
-	addi $sp, $sp, -8
+	addi $sp, $sp, -32
 	sw $ra, 0($sp)
-	sw $s4, 4($sp)
+	sw $s0, 4($sp)
+	sw $s1, 8($sp)
+	sw $s2, 12($sp)
+	sw $s3, 16($sp)
+	sw $s4, 20($sp)
+	sw $s5, 24($sp)
+	sw $s6, 28($sp)
+
+
 	
+	
+	# loop through from row 0 to row (a0 - 1)
+	# for each byte in basic_matrix
+	# set the byte of 
+	# basic_matrix[index + 10] = basic_matrix[index]
+	
+	
+	
+	# set row 0 of basic_matrix all equal to 0
+	# this is: basic_matrix[0] to basic_matrix[9] is set = 0
+	
+	
+	# delete row $a0, (set it equal to 0)
+	li $t0, 0		# i = 0
+	li $t1, 9		# max_i = 9
+	move $s2, $a0		# $s2 = $a0 (which is the full row)
+	j pfr_delete_row_loop	# delete row $a
+	
+	
+	
+	j pfr_exit		# ensure that pfr_copy_row isn't accidentally called twice
+
+# see this as a function which takes 1 parameter being $s1 (row number) and copies the row to row-1.
+# IMPORTANT: Whenever calling this "function: ensure that s1 = row number, $t0 = 0, $t1 = 9;
+pfr_copy_row:
+	beq $t0, $t1, pfr_copy_row_exit
+	
+	
+	
+
+	
+	
+	
+	addi $t0, $t0, 1 	# i++
+	
+pfr_copy_row_exit:
+
+
+
 		
-		
+	j pfr_exit		# ensure that pfr_delete_row_loop isn't accidentally called twice
+	
+	
+# see this as a function which takes 1 parameter being $s2 (row number) and deletes said row.
+# IMPORTANT: Whenever calling this "function: ensure that s2 = row number, $t0 = 0, $t1 = 9;
+pfr_delete_row_loop:
+	beq $t0, $t1, pfr_delete_row_loop_exit	# if i == 9, exit
+	
+	mul $t3, $s2, 10	# t3 = row * 10
+	add $t3, $t3, $t0	# t3 += i
+	add $t3, $t3, $s4 	# t3 = address of basic_matrix[row * 10 + i]
+	sb $zero, 0($t3)	# basic_matrix[row * 10 + i] = 0
+	
+	
+	
+	addi $t0, $t0, 1	# i ++
+	j pfr_delete_row_loop
+	
+pfr_delete_row_loop_exit:
+
+pfr_exit:
+
 	lw $ra, 0($sp)
-	lw $s4, 4($sp)
-	addi $sp, $sp, 8
+	lw $s0, 4($sp)
+	lw $s1, 8($sp)
+	lw $s2, 12($sp)
+	lw $s3, 16($sp)
+	lw $s4, 20($sp)
+	lw $s5, 24($sp)
+	lw $s6, 28($sp)
+	addi $sp, $sp, 32
 	jr $ra
 		
 		
