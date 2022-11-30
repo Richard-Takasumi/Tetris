@@ -753,7 +753,7 @@ ubm_loop1:
 	add $t3, $s4, $t3	# t3 = address of basic_matrix bitmap + offset (which was t3)
 	
 	lb $t4, 0($t3)		# t4 = basic_matrix[(y*10)+x]
-	addi $t4, $t3, 1	# t4 += 1
+	addi $t4, $t4, 1	# t4 += 1
 	sb $t4, 0($t3)		# basic_matrix[(y*10)+x]++
 	
 	addi $t0, $t0, 1		# i++
