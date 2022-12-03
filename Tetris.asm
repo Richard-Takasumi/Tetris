@@ -1,3 +1,9 @@
+# name: 	Richard Steven TAKASUMI
+# SID:		20841632
+# email:	rstakasumi@connect.ust.hk
+
+
+
 .data
 # player instruction
 input_key:	.word 0 # input key from the player
