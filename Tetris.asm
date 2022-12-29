@@ -307,23 +307,6 @@ bml_exit:
 # This function has no return value
 #--------------------------------------------------------------------	
 block_move_right:
-
-# *****Task1: you need to complete this procedure block_move_right to perform its operations as described in comments above. 
-# Hints:
-# Procedure procedure check_movement_valid (Task3) is one of the callees. Read its description before you start coding here.
-# Firstly, preserve values $ra, $s0, $s1, $s2, $s3 with stack
-# Then, use the registers as described below:
-# 		The address of id of the current block is in $s0
-#		The address of x_loc of the current block is in $s1	
-# 		The address of y_loc of the current block is in $s2
-# 		The address of the mode of current block is in $s3
-# Calculate new x_loc of the block.
-# Check whether this movement is valid (using procedure check_movement_valid),
-#		If it is invalid, don't update the value.
-#		If it is valid, then save the new x_loc for the current block and update this movement to the GUI in java code.
-# Lastly, pop and restore values in $ra, $s0, $s1, $s2, $s3  and return
-# Hint: you can refer to block_move_left to get some clues and pause "p" is very useful to debug.
-# *****Your codes start here
 	addi $sp, $sp, -20
 	sw $ra, 0($sp)
 	sw $s0, 4($sp)
@@ -365,13 +348,6 @@ bmr_exit:
 		
 		
 		
-		
-		
-		
-		
-		
-# *****Your codes end here	
-
 
 #--------------------------------------------------------------------
 # procedure: block_rotate
@@ -380,22 +356,6 @@ bmr_exit:
 # This function has no return value
 #--------------------------------------------------------------------	
 block_rotate:
-# *****Task2: you need to complete this procedure block_rotate to perform its operations as described in comments above. 
-# Hints:
-# Procedure procedure check_movement_valid (Task3) is one of the callees. Read its description before you start coding here.
-# Firstly, preserve values $ra, $s0, $s1, $s2, $s3 with stack
-# Then, use the registers as described below:
-# 		The address of id of the current block is in $s0
-#		The address of x_loc of the current block is in $s1	
-# 		The address of y_loc of the current block is in $s2
-# 		The address of the mode of current block is in $s3
-# Calculate new mode of the current block.
-# Check whether this rotation is valid (using procedure check_movement_valid),
-#		If it is invalid, don't update new mode of the current block.
-#		If it is valid, then save the new mode for the current block and update this movement to the GUI in java code.
-# Lastly, pop and restore values in $ra, $s0, $s1, $s2, $s3  and return
-# Hint: you can refer to block_move_left to get some clues and pause "p" is very useful to debug.
-# *****Your codes start here
 	addi $sp, $sp, -20
 	sw $ra, 0($sp)
 	sw $s0, 4($sp)
@@ -446,10 +406,6 @@ br_exit:
 		
 		
 		
-		
-# *****Your codes end here	
-		
-
 			
 #--------------------------------------------------------------------
 # procedure: block_move_down
@@ -559,17 +515,6 @@ bmd_exit:
 # Output: $v0,1 means the movement is valid, 0 means the movement is invalid
 #--------------------------------------------------------------------
 check_movement_valid:
-#*****Task3: you need to complete this procedure check_movement_valid to perform its operations as described in comments above. 
-# Hints: 
-# Firstly, preserve values $ra, $s4 with stack
-# Then, use the registers as described below:
-# 		The base address of basic_matrix_bitmap is in $s4
-# Secondly, use the these four input parameters, mode_x_loc and mode_y_loc to calculate the absolute corrdinate of every 4 squares in a block.
-# Thirdly, check whether the corrdinate of all four squares is valid with loop.
-# Note that this procedure is used to check the validity of all types of actions, so it have to consider all situations.
-# All situations includes crossing horizontal_boundary, crossing vertical_boundary and overlapping with fixed squares.
-# At last, set the value of $v0 based on the check result ,and pop and restore values in $ra, $s4  and return.
-#*****Your codes start here
 	addi $sp, $sp, -32
 	sw $ra, 0($sp)
 	sw $s4, 4($sp)
@@ -681,9 +626,6 @@ cmv_exit:
 		
 		
 		
-		
-# *****Your codes end here	
-				
 	
 #--------------------------------------------------------------------
 # Procedure: update_basic_matrix
@@ -695,15 +637,6 @@ cmv_exit:
 # This function has no return value.
 #--------------------------------------------------------------------
 update_basic_matrix:
-#*****Task4: you need to complete this procedure update_basic_matrix to perform its operations as described in comments above. 
-# Hints: 
-# Firstly, preserve values $ra, $s4 with stack
-# Then, use the registers as described below:
-# 		The base address of basic_matrix_bitmap is in $s4
-# Secondly, use the these four input parameters, mode_x_loc and mode_y_loc to calculate the absolute corrdinate of every 4 squares in a block.
-# Thirdly, increment the corresponding coordinate in basic_matrix_bitmap by 1.
-# At last, pop and restore values in $ra, $s4  and return.
-#*****Your codes start here
 	addi $sp, $sp, -32
 	sw $ra, 0($sp)
 	sw $s0, 4($sp)
@@ -789,9 +722,6 @@ ubm_exit_loop1:
 	addi $sp, $sp, 32
         jr $ra	
 		
-# *****Your codes end here
-
-
 	
 #--------------------------------------------------------------------
 # Procedure: check_game_over
@@ -933,16 +863,6 @@ cfr_exit:
 # This function has no return value.
 #--------------------------------------------------------------------
 process_full_row:
-#*****Task5: you need to complete this procedure process_full_row to perform its operations as described in comments above. 
-# Hints: 
-# Firstly, preserve values $ra, $s4 with stack
-# Then, use the registers as described below:
-# 		The base address of basic_matrix_bitmap is in $s4
-# Secondly, delete row $a0 and use loop to move all rows above $a0 downside by one row.
-# 	Logic for reference:  for all k (rows above row $a0 and row $a0), for all l (elements in this row), let basicMatrix[k][l][0] = basicMatrix[k - 1][l][0];
-# Thirdly, let the first row of basic matrix equal to zero.
-# At last, use syscall 107 and 102, then pop and restore values in $ra, $s4  and return.
-#*****Your codes start here
 	addi $sp, $sp, -48
 	sw $ra, 0($sp)
 	sw $s0, 4($sp)
@@ -1114,9 +1034,6 @@ pfr_delete_row_loop_exit:
 	li $v0, 101 # Refresh the screen
 	syscall
 	jr $ra	
-
-		
-# *****Your codes end here
 
 
 #--------------------------------------------------------------------
